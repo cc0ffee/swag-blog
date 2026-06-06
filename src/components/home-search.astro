@@ -1,0 +1,246 @@
+---
+import { Icon } from 'astro-icon/components'
+
+interface Props {
+  compact?: boolean
+}
+
+const { compact = false } = Astro.props
+
+const inputWidth = compact
+  ? 'w-40 lg:w-48'
+  : 'w-48 lg:w-56'
+---
+
+<div class="home-search relative" data-home-search>
+  <label class="relative block">
+    <span class="sr-only">Search posts</span>
+    <input
+      type="search"
+      data-search-input
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="搜索..."
+      class:list={[
+        inputWidth,
+        'rounded-full border-0 bg-[var(--home-brown)]/80 py-2 pr-10 pl-4 text-sm text-white placeholder:text-white/50 focus:ring-2 focus:ring-[var(--home-brown)]/30 focus:outline-none',
+      ]}
+    />
+    <Icon
+      name="lucide:search"
+      class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-white/60"
+    />
+  </label>
+
+  <div
+    class="absolute top-[calc(100%+0.5rem)] right-0 z-50 hidden max-h-80 w-80 overflow-y-auto border border-[var(--home-brown)]/10 bg-white shadow-lg ring-1 ring-black/5"
+    data-search-results
+    role="listbox"
+    aria-label="Search results"
+  >
+  </div>
+</div>
+
+<script is:inline>
+  ;(() => {
+    /** @type {Array<{ title: string; description: string; tags: string[]; href: string }> | null} */
+    let index = null
+    /** @type {Promise<Array<{ title: string; description: string; tags: string[]; href: string }>> | null} */
+    let indexPromise = null
+    /** @type {number} */
+    let activeIndex = -1
+
+    function loadIndex() {
+      if (index) return Promise.resolve(index)
+      if (indexPromise) return indexPromise
+
+      indexPromise = fetch('/search.json')
+        .then((response) => {
+          if (!response.ok) throw new Error('Failed to load search index')
+          return response.json()
+        })
+        .then((data) => {
+          index = Array.isArray(data) ? data : []
+          return index
+        })
+        .catch(() => {
+          index = []
+          return index
+        })
+
+      return indexPromise
+    }
+
+    function searchEntries(entries, query, limit = 8) {
+      const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+      if (terms.length === 0) return []
+
+      const scored = entries
+        .map((entry) => {
+          const title = entry.title.toLowerCase()
+          const description = entry.description.toLowerCase()
+          const tags = entry.tags.join(' ').toLowerCase()
+          const haystack = `${title} ${description} ${tags}`
+
+          const matches = terms.every(
+            (term) =>
+              title.includes(term) ||
+              description.includes(term) ||
+              tags.includes(term) ||
+              haystack.includes(term),
+          )
+
+          if (!matches) return null
+
+          let score = 0
+          for (const term of terms) {
+            if (title.includes(term)) score += 4
+            if (tags.includes(term)) score += 2
+            if (description.includes(term)) score += 1
+          }
+
+          return { entry, score }
+        })
+        .filter(Boolean)
+
+      return scored
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(({ entry }) => entry)
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+    }
+
+    function renderResults(container, results) {
+      if (results.length === 0) {
+        container.innerHTML =
+          '<p class="px-4 py-3 text-sm text-[var(--home-brown)]/50">No posts found</p>'
+        return
+      }
+
+      container.innerHTML = results
+        .map(
+          (result, index) => `
+            <a
+              href="${result.href}"
+              class="block border-b border-[var(--home-brown)]/5 px-4 py-3 transition-colors last:border-b-0 hover:bg-[var(--home-beige)]/40 focus:bg-[var(--home-beige)]/40 focus:outline-none"
+              data-search-result
+              data-search-index="${index}"
+              role="option"
+            >
+              <p class="line-clamp-1 text-sm font-medium text-[var(--home-brown)]">${escapeHtml(result.title)}</p>
+              <p class="mt-1 line-clamp-2 text-xs text-[var(--home-brown)]/55">${escapeHtml(result.description)}</p>
+            </a>
+          `,
+        )
+        .join('')
+    }
+
+    function setActiveResult(container, nextIndex) {
+      const items = container.querySelectorAll('[data-search-result]')
+      if (items.length === 0) {
+        activeIndex = -1
+        return
+      }
+
+      activeIndex = Math.max(0, Math.min(nextIndex, items.length - 1))
+      items.forEach((item, index) => {
+        item.classList.toggle('bg-[var(--home-beige)]/40', index === activeIndex)
+      })
+      items[activeIndex]?.scrollIntoView({ block: 'nearest' })
+    }
+
+    function closeResults(container) {
+      container.classList.add('hidden')
+      container.innerHTML = ''
+      activeIndex = -1
+    }
+
+    function openResults(container) {
+      container.classList.remove('hidden')
+    }
+
+    function bindSearch(root) {
+      const input = root.querySelector('[data-search-input]')
+      const results = root.querySelector('[data-search-results]')
+      if (!(input instanceof HTMLInputElement) || !(results instanceof HTMLElement)) {
+        return
+      }
+
+      async function runSearch() {
+        const query = input.value.trim()
+        if (!query) {
+          closeResults(results)
+          return
+        }
+
+        const entries = await loadIndex()
+        const matches = searchEntries(entries, query)
+        renderResults(results, matches)
+        openResults(results)
+        setActiveResult(results, 0)
+      }
+
+      input.addEventListener('input', () => {
+        void runSearch()
+      })
+
+      input.addEventListener('focus', () => {
+        if (input.value.trim()) void runSearch()
+      })
+
+      input.addEventListener('keydown', (event) => {
+        const items = results.querySelectorAll('[data-search-result]')
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          if (results.classList.contains('hidden')) void runSearch()
+          else setActiveResult(results, activeIndex + 1)
+        }
+
+        if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          setActiveResult(results, activeIndex - 1)
+        }
+
+        if (event.key === 'Enter') {
+          if (activeIndex >= 0 && items[activeIndex] instanceof HTMLAnchorElement) {
+            event.preventDefault()
+            window.location.href = items[activeIndex].href
+          }
+        }
+
+        if (event.key === 'Escape') {
+          closeResults(results)
+          input.blur()
+        }
+      })
+
+      document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Node)) return
+        if (!root.contains(event.target)) closeResults(results)
+      })
+    }
+
+    function initSearch() {
+      document.querySelectorAll('[data-home-search]').forEach((root) => {
+        if (!(root instanceof HTMLElement) || root.dataset.searchBound === 'true') return
+        root.dataset.searchBound = 'true'
+        bindSearch(root)
+      })
+    }
+
+    document.addEventListener('astro:page-load', initSearch)
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSearch, { once: true })
+    } else {
+      initSearch()
+    }
+  })()
+</script>

@@ -1,0 +1,274 @@
+---
+import Link from '@/components/link.astro'
+import {
+  HOME_SOCIAL_LINKS,
+  SIDEBAR_MENU,
+  SIDEBAR_STATS,
+  SIDEBAR_TAGLINE,
+  SITE,
+} from '@/consts'
+import { getAllPosts, getAllTags, getRecentPosts } from '@/lib/data-utils'
+import { Icon } from 'astro-icon/components'
+
+const posts = await getAllPosts()
+const tagMap = await getAllTags()
+const recentPosts = await getRecentPosts(4)
+const tagCount = tagMap.size
+const tagUsageTotal = [...tagMap.values()].reduce((sum, count) => sum + count, 0)
+
+const now = new Date()
+const calendarYear = now.getFullYear()
+const calendarMonth = now.getMonth()
+const monthLabel = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })
+const firstDay = new Date(calendarYear, calendarMonth, 1).getDay()
+const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate()
+const today = now.getDate()
+const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六']
+
+const socialIcons: Record<string, string> = {
+  RSS: 'lucide:rss',
+  GitHub: 'lucide:github',
+  Telegram: 'lucide:send',
+  Bilibili: 'lucide:tv',
+}
+---
+
+<aside
+  id="home-sidebar"
+  class="home-sidebar fixed top-0 left-0 z-50 h-screen overflow-visible bg-[var(--home-brown)] text-white transition-[width] duration-300 ease-in-out"
+  style="width: var(--home-sidebar-width)"
+  aria-label="Site sidebar"
+>
+  <div class="sidebar-expanded flex h-full w-[17.5rem] flex-col overflow-y-auto px-4 py-5">
+    <div class="mb-5 text-center">
+      <img
+        src="/static/avatar.jpg"
+        alt=""
+        width="72"
+        height="72"
+        class="mx-auto size-[4.5rem] rounded-full border-2 border-white/15 object-cover"
+      />
+      <p class="mt-3 font-mono text-base tracking-wide">{SITE.author}</p>
+      <p class="mt-1 text-xs text-white/45">{SIDEBAR_TAGLINE}</p>
+    </div>
+
+    <div class="mb-4 grid grid-cols-3 gap-2 text-center text-[11px] text-white/70">
+      <div class="flex flex-col items-center gap-1">
+        <Icon name="lucide:folder" class="size-4" />
+        <span>{posts.length}</span>
+      </div>
+      <div class="flex flex-col items-center gap-1">
+        <Icon name="lucide:tag" class="size-4" />
+        <span>{tagCount}</span>
+      </div>
+      <div class="flex flex-col items-center gap-1">
+        <Icon name="lucide:heart" class="size-4" />
+        <span>{tagUsageTotal}</span>
+      </div>
+    </div>
+
+    <ul class="mb-4 flex justify-center gap-2" role="list">
+      {
+        HOME_SOCIAL_LINKS.map(({ href, label }) => (
+          <li>
+            <Link
+              href={href}
+              external={href.startsWith('http')}
+              aria-label={label}
+              class="inline-flex size-8 items-center justify-center bg-white/10 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              <Icon name={socialIcons[label] ?? 'lucide:link'} class="size-3.5" />
+            </Link>
+          </li>
+        ))
+      }
+    </ul>
+
+    <nav class="mb-4 space-y-1">
+      {
+        SIDEBAR_MENU.map((item) => (
+          <Link
+            href={item.href}
+            external={item.href.endsWith('.xml')}
+            class="flex items-center justify-between px-2 py-2 text-sm text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <span>{item.label}</span>
+            <span class="text-[10px] text-white/30">{item.numeral}</span>
+          </Link>
+        ))
+      }
+    </nav>
+
+    <div class="mb-4 bg-white/5 p-3">
+      <div class="mb-2 flex items-center justify-between text-xs text-white/50">
+        <span>{monthLabel}</span>
+        <span class="flex gap-2">
+          <button type="button" class="opacity-40" disabled aria-hidden="true">‹</button>
+          <button type="button" class="opacity-40" disabled aria-hidden="true">›</button>
+        </span>
+      </div>
+      <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-white/35">
+        {weekdayLabels.map((label) => <span>{label}</span>)}
+      </div>
+      <div class="mt-1 grid grid-cols-7 gap-1 text-center text-[10px]">
+        {
+          Array.from({ length: firstDay }).map(() => <span aria-hidden="true"></span>)
+        }
+        {
+          Array.from({ length: daysInMonth }, (_, index) => {
+            const day = index + 1
+            const isToday = day === today
+            return (
+              <span
+                class:list={[
+                  'flex size-6 items-center justify-center',
+                  isToday ? 'bg-white/20 text-white' : 'text-white/55',
+                ]}
+              >
+                {day}
+              </span>
+            )
+          })
+        }
+      </div>
+    </div>
+
+    <div class="mb-4 grid grid-cols-2 gap-2 text-center text-xs">
+      <div class="bg-white/5 px-2 py-3">
+        <p class="text-white/40">积分</p>
+        <p class="mt-1 font-medium">{SIDEBAR_STATS.points}</p>
+      </div>
+      <div class="bg-white/5 px-2 py-3">
+        <p class="text-white/40">排名</p>
+        <p class="mt-1 font-medium">{SIDEBAR_STATS.rank}</p>
+      </div>
+    </div>
+
+    <div class="mb-4 flex-1">
+      <p class="mb-2 text-xs text-white/40">最新随笔</p>
+      <ul class="space-y-2" role="list">
+        {
+          recentPosts.map((post) => (
+            <li>
+              <Link
+                href={`/blog/${post.id}`}
+                class="line-clamp-2 text-xs leading-relaxed text-white/65 transition-colors hover:text-white"
+              >
+                {post.data.title}
+              </Link>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="mt-auto flex items-center justify-between border-t border-white/10 pt-4 text-xs text-white/50">
+      <span class="font-mono tracking-wide">{SITE.author}</span>
+      <div class="flex items-center gap-2">
+        <button
+          id="sidebar-toggle"
+          type="button"
+          class="flex size-7 cursor-pointer items-center justify-center transition-colors hover:bg-white/10 hover:text-white"
+          aria-label="Collapse sidebar"
+          aria-expanded="false"
+        >
+          <Icon name="lucide:chevrons-left" class="size-4" />
+        </button>
+        <Link
+          href="mailto:hello@cc00ffee.dev"
+          aria-label="Email"
+          class="flex size-7 items-center justify-center transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <Icon name="lucide:mail" class="size-4" />
+        </Link>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-collapsed absolute inset-0 flex-col items-center py-8">
+    <button
+      id="sidebar-tab-expand"
+      type="button"
+      class="absolute top-5 -right-3 z-10 flex h-10 w-4 cursor-pointer items-center justify-center bg-[var(--home-beige)] text-[var(--home-brown)]/50 shadow-sm transition-colors hover:text-[var(--home-brown)]"
+      aria-label="Expand sidebar"
+    >
+      <svg viewBox="0 0 6 10" class="size-2.5 fill-current" aria-hidden="true">
+        <path d="M0 0 L6 5 L0 10 Z"></path>
+      </svg>
+    </button>
+
+    <a href="/" class="shrink-0" aria-label="Home">
+      <img
+        src="/static/avatar.jpg"
+        alt=""
+        width="40"
+        height="40"
+        class="size-10 rounded-full border-2 border-white/20 object-cover"
+      />
+    </a>
+
+    <div class="flex flex-1 flex-col items-center justify-end pb-2">
+      <span
+        class="mb-6 text-sm tracking-[0.3em] text-white/85 lowercase"
+        style="writing-mode: vertical-rl; text-orientation: mixed;"
+      >
+        {SITE.author}
+      </span>
+
+      <button
+        id="sidebar-expand"
+        type="button"
+        class="flex size-8 shrink-0 cursor-pointer items-center justify-center text-white/70 transition-colors hover:text-white"
+        aria-label="Expand sidebar"
+      >
+        <Icon name="lucide:chevrons-right" class="size-4" />
+      </button>
+    </div>
+  </div>
+</aside>
+
+<script is:inline>
+  ;(() => {
+    const STORAGE_KEY = 'home-sidebar-collapsed'
+
+    function setCollapsed(collapsed) {
+      document.documentElement.dataset.sidebarCollapsed = collapsed ? 'true' : 'false'
+      localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0')
+
+      const toggle = document.getElementById('sidebar-toggle')
+      toggle?.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
+    }
+
+    function initSidebar() {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      setCollapsed(saved !== '0')
+    }
+
+    function handleClick(event) {
+      const target = event.target
+      if (!(target instanceof Element)) return
+
+      if (target.closest('#sidebar-toggle')) {
+        event.preventDefault()
+        setCollapsed(true)
+      }
+
+      if (
+        target.closest('#sidebar-expand') ||
+        target.closest('#sidebar-tab-expand')
+      ) {
+        event.preventDefault()
+        setCollapsed(false)
+      }
+    }
+
+    document.addEventListener('click', handleClick)
+    document.addEventListener('astro:page-load', initSidebar)
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSidebar, { once: true })
+    } else {
+      initSidebar()
+    }
+  })()
+</script>

@@ -154,6 +154,26 @@
     :where(.katex-display):not(:where(.not-prose, .not-prose *)) {
       @apply text-foreground/80 my-6 overflow-x-auto overflow-y-hidden py-2 tracking-normal;
     }
+
+    &.post-prose {
+      @apply text-[var(--home-brown)];
+
+      :where(h2, h3, h4, h5, h6):not(:where(.not-prose, .not-prose *)) {
+        @apply scroll-mt-[calc(var(--home-topbar-height)+2rem)] text-[var(--home-brown)];
+      }
+
+      :where(p):not(:where(.not-prose, .not-prose *)) {
+        @apply text-[var(--home-brown)]/75;
+      }
+
+      :where(a):not(:where(.not-prose, .not-prose *)) {
+        @apply text-[var(--home-brown)] decoration-[var(--home-brown)]/30 hover:decoration-[var(--home-brown)];
+      }
+
+      :where(.expressive-code):not(:where(.not-prose, .not-prose *)) {
+        @apply overflow-hidden ring-1 ring-[var(--home-brown)]/10;
+      }
+    }
   }
 }
 

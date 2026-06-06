@@ -17,12 +17,19 @@ export interface BreadcrumbItem {
 
 interface Props {
   items: BreadcrumbItem[]
+  centered?: boolean
 }
 
-const { items } = Astro.props
+const { items, centered = false } = Astro.props
 ---
 
-<Breadcrumb>
+<div
+  class:list={[
+    centered &&
+      'flex justify-center text-[var(--home-brown)]/60 [&_[data-slot=breadcrumb-page]]:text-[var(--home-brown)]',
+  ]}
+>
+  <Breadcrumb>
   <BreadcrumbList>
     <BreadcrumbItem>
       <BreadcrumbLink href="/">
@@ -59,3 +66,4 @@ const { items } = Astro.props
     }
   </BreadcrumbList>
 </Breadcrumb>
+</div>

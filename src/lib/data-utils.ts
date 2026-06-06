@@ -120,6 +120,26 @@ export async function getRecentPosts(
   return posts.slice(0, count)
 }
 
+export type BentoLayout = 'vertical' | 'horizontal'
+
+const BENTO_LAYOUT_CYCLE: BentoLayout[] = ['vertical', 'vertical', 'horizontal']
+
+export function getBentoLayout(index: number): BentoLayout {
+  return BENTO_LAYOUT_CYCLE[index % BENTO_LAYOUT_CYCLE.length]
+}
+
+export async function getHomePosts(): Promise<{
+  pinned: CollectionEntry<'blog'> | null
+  posts: CollectionEntry<'blog'>[]
+  total: number
+}> {
+  const posts = await getAllPosts()
+  const pinned = posts.find((post) => post.data.pinned) ?? null
+  const rest = posts.filter((post) => !post.data.pinned)
+
+  return { pinned, posts: rest, total: posts.length }
+}
+
 export async function getSortedTags(): Promise<
   { tag: string; count: number }[]
 > {

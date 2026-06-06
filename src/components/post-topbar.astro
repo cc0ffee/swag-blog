@@ -1,0 +1,167 @@
+---
+import Link from '@/components/link.astro'
+import HomeSearch from '@/components/home-search.astro'
+import { HOME_NAV_LINKS } from '@/consts'
+import { Icon } from 'astro-icon/components'
+
+interface Props {
+  title: string
+}
+
+const { title } = Astro.props
+
+const navIcons: Record<string, string> = {
+  '首页': 'lucide:house',
+  '友情链接': 'lucide:link',
+  '关于': 'lucide:heart',
+}
+---
+
+<header
+  class="post-topbar fixed top-0 z-40 flex h-[var(--home-topbar-height)] items-center justify-between gap-4 border-b border-[var(--home-brown)]/5 px-4 backdrop-blur-md sm:px-6"
+  style="left: var(--home-sidebar-width); right: 0; background-color: rgba(232, 226, 217, 0.75); transition: left 0.3s ease-in-out;"
+>
+  <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+    <Icon
+      name="lucide:book-open-text"
+      class="size-4 shrink-0 text-[var(--home-brown)]/70"
+    />
+    <span
+      class="hidden truncate text-sm font-medium text-[var(--home-brown)] sm:inline"
+    >
+      {title}
+    </span>
+
+    <div class="flex shrink-0 items-center gap-2 sm:ml-1">
+      <div class="relative size-7" aria-hidden="true">
+        <svg class="size-7 -rotate-90" viewBox="0 0 36 36">
+          <circle
+            cx="18"
+            cy="18"
+            r="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            class="text-[var(--home-brown)]/10"
+          ></circle>
+          <circle
+            data-reading-progress-circle
+            cx="18"
+            cy="18"
+            r="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+            class="text-red-400"
+          ></circle>
+        </svg>
+      </div>
+      <span
+        data-reading-progress-text
+        class="text-xs whitespace-nowrap text-[var(--home-brown)]/60"
+      >
+        0% complete
+      </span>
+    </div>
+  </div>
+
+  <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+    <div class="hidden md:block">
+      <HomeSearch compact />
+    </div>
+
+    <img
+      src="/static/avatar.svg"
+      alt=""
+      width="28"
+      height="28"
+      class="hidden size-7 rounded-full border border-[var(--home-brown)]/10 object-cover sm:block"
+    />
+
+    <div
+      class="hidden h-5 w-px bg-[var(--home-brown)]/15 lg:block"
+      aria-hidden="true"
+    >
+    </div>
+
+    <nav class="flex items-center gap-0.5 sm:gap-2">
+      {
+        HOME_NAV_LINKS.map((item) => (
+          <Link
+            href={item.href}
+            class="flex items-center gap-1 px-1.5 py-1.5 text-sm text-[var(--home-brown)]/80 transition-colors hover:text-[var(--home-brown)] sm:px-2"
+          >
+            <Icon name={navIcons[item.label] ?? 'lucide:circle'} class="size-4" />
+            <span class="hidden lg:inline">{item.label}</span>
+          </Link>
+        ))
+      }
+    </nav>
+  </div>
+</header>
+
+<script is:inline>
+  ;(() => {
+    const RADIUS = 14
+    const CIRCUMFERENCE = 2 * Math.PI * RADIUS
+    let scrollHandler = null
+    let resizeHandler = null
+
+    function updateReadingProgress() {
+      const circle = document.querySelector('[data-reading-progress-circle]')
+      const text = document.querySelector('[data-reading-progress-text]')
+      if (!circle || !text) return
+
+      circle.style.strokeDasharray = String(CIRCUMFERENCE)
+
+      const scrollable =
+        document.documentElement.scrollHeight - window.innerHeight
+      const progress =
+        scrollable > 0
+          ? Math.min(Math.max(window.scrollY / scrollable, 0), 1)
+          : 1
+      const percent = Math.round(progress * 100)
+
+      circle.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - progress))
+      text.textContent = `${percent}% complete`
+    }
+
+    function bindReadingProgress() {
+      if (scrollHandler) {
+        window.removeEventListener('scroll', scrollHandler)
+        window.removeEventListener('resize', resizeHandler)
+      }
+
+      scrollHandler = () => requestAnimationFrame(updateReadingProgress)
+      resizeHandler = updateReadingProgress
+
+      window.addEventListener('scroll', scrollHandler, { passive: true })
+      window.addEventListener('resize', resizeHandler, { passive: true })
+
+      updateReadingProgress()
+      window.setTimeout(updateReadingProgress, 100)
+      window.setTimeout(updateReadingProgress, 500)
+    }
+
+    function unbindReadingProgress() {
+      if (scrollHandler) {
+        window.removeEventListener('scroll', scrollHandler)
+        window.removeEventListener('resize', resizeHandler)
+        scrollHandler = null
+        resizeHandler = null
+      }
+    }
+
+    document.addEventListener('astro:page-load', bindReadingProgress)
+    document.addEventListener('astro:before-swap', unbindReadingProgress)
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindReadingProgress, {
+        once: true,
+      })
+    } else {
+      bindReadingProgress()
+    }
+  })()
+</script>

@@ -1,0 +1,82 @@
+---
+import Link from '@/components/link.astro'
+import { HOME_SOCIAL_LINKS, SITE } from '@/consts'
+import { Icon } from 'astro-icon/components'
+
+const socialColors: Record<string, string> = {
+  RSS: 'text-orange-500 hover:text-orange-600',
+  GitHub: 'text-[var(--home-brown)] hover:text-black',
+  Telegram: 'text-sky-500 hover:text-sky-600',
+  Bilibili: 'text-sky-400 hover:text-sky-500',
+}
+
+const socialIcons: Record<string, string> = {
+  RSS: 'lucide:rss',
+  GitHub: 'lucide:github',
+  Telegram: 'lucide:send',
+  Bilibili: 'lucide:tv',
+}
+---
+
+<section class="relative bg-[var(--home-beige)] px-6 py-16 lg:px-12 lg:py-20">
+  <div
+    class="mx-auto flex max-w-5xl flex-col items-center gap-10 md:flex-row md:items-start md:gap-14"
+  >
+    <img
+      src="/static/avatar.jpg"
+      alt=""
+      width="280"
+      height="280"
+      class="size-52 shrink-0 object-contain md:size-64 lg:size-72"
+    />
+
+    <div class="flex flex-col gap-4 text-center md:text-left">
+      <h1 class="text-4xl font-bold tracking-wide text-[var(--home-brown)] lg:text-5xl">
+        {SITE.title}
+      </h1>
+
+      <p class="text-lg text-[var(--home-brown)]/80">
+        写代码 · <span class="border-b-2 border-red-500 pb-0.5">记生活</span>
+      </p>
+
+      <p class="max-w-lg text-sm leading-relaxed text-[var(--home-brown)]/70">
+        {SITE.description}
+        在这里分享技术笔记、项目经验，以及日常里的所见所想。
+      </p>
+
+      <ul class="flex flex-wrap justify-center gap-3 md:justify-start" role="list">
+        {
+          HOME_SOCIAL_LINKS.map(({ href, label }) => (
+            <li>
+              <Link
+                href={href}
+                external={href.startsWith('http')}
+                aria-label={label}
+                title={label}
+                class={`inline-flex size-9 items-center justify-center bg-white/60 transition-colors ${socialColors[label] ?? 'text-[var(--home-brown)]'}`}
+              >
+                <Icon name={socialIcons[label] ?? 'lucide:link'} class="size-4" />
+              </Link>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  <div class="absolute bottom-6 left-1/2 -translate-x-1/2" aria-hidden="true">
+    <Icon name="lucide:chevron-down" class="size-6 text-white/80" />
+  </div>
+
+  <svg
+    class="absolute right-0 -bottom-px left-0 w-full text-white"
+    viewBox="0 0 1440 48"
+    preserveAspectRatio="none"
+    aria-hidden="true"
+  >
+    <path
+      fill="currentColor"
+      d="M0,32 C360,48 720,8 1080,24 C1260,32 1380,40 1440,32 L1440,48 L0,48 Z"
+    ></path>
+  </svg>
+</section>

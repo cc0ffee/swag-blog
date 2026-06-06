@@ -1,0 +1,48 @@
+---
+import Link from '@/components/link.astro'
+import HomeSearch from '@/components/home-search.astro'
+import { HOME_NAV_LINKS } from '@/consts'
+import { Icon } from 'astro-icon/components'
+
+const navIcons: Record<string, string> = {
+  '首页': 'lucide:house',
+  '友情链接': 'lucide:link',
+  '关于': 'lucide:heart',
+}
+---
+
+<header
+  class="home-topbar fixed top-0 z-40 flex h-[var(--home-topbar-height)] items-center justify-end gap-4 border-b border-[var(--home-brown)]/5 px-6 backdrop-blur-md"
+  style="left: var(--home-sidebar-width); right: 0; background-color: rgba(232, 226, 217, 0.75); transition: left 0.3s ease-in-out;"
+>
+  <div class="flex items-center gap-4">
+    <div class="hidden sm:block">
+      <HomeSearch />
+    </div>
+
+    <img
+      src="/static/avatar.jpg"
+      alt=""
+      width="28"
+      height="28"
+      class="hidden size-7 rounded-full border border-[var(--home-brown)]/10 object-cover sm:block"
+    />
+
+    <div class="hidden h-5 w-px bg-[var(--home-brown)]/15 md:block" aria-hidden="true">
+    </div>
+
+    <nav class="flex items-center gap-1 sm:gap-3">
+      {
+        HOME_NAV_LINKS.map((item) => (
+          <Link
+            href={item.href}
+            class="flex items-center gap-1.5 px-2 py-1.5 text-sm text-[var(--home-brown)]/80 transition-colors hover:text-[var(--home-brown)]"
+          >
+            <Icon name={navIcons[item.label] ?? 'lucide:circle'} class="size-4" />
+            <span class="hidden sm:inline">{item.label}</span>
+          </Link>
+        ))
+      }
+    </nav>
+  </div>
+</header>
